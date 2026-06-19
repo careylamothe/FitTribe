@@ -26,6 +26,7 @@ disposable Postgres instance before any PR can merge.
 ```
 NEXTAUTH_SECRET=            # openssl rand -base64 32
 NEXTAUTH_URL=                # http://localhost:3000 in dev
+AUTH_SECRET=                # openssl rand -base64 32 
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
