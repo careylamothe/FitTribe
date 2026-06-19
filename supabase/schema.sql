@@ -95,21 +95,27 @@ create policy "Users can update own profile"
   on public.users for update
   using (auth.uid() = id);
 
-create policy "Users can view own calendar events"
+create policy "Authenticated users can view all calendar events"
   on public.calendar_events for select
-  using (auth.uid() = user_id);
+  using (auth.role() = 'authenticated');
 
-create policy "Users can insert own calendar events"
+create policy "Admins can insert calendar events"
   on public.calendar_events for insert
-  with check (auth.uid() = user_id);
+  with check (
+    exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+  );
 
-create policy "Users can update own calendar events"
+create policy "Admins can update calendar events"
   on public.calendar_events for update
-  using (auth.uid() = user_id);
+  using (
+    exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+  );
 
-create policy "Users can delete own calendar events"
+create policy "Admins can delete calendar events"
   on public.calendar_events for delete
-  using (auth.uid() = user_id);
+  using (
+    exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+  );
 
 create policy "Authenticated members can read chat"
   on public.chat_messages for select

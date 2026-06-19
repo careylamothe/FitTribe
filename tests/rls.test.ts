@@ -10,6 +10,7 @@ interface TestUser {
 
 let userA: TestUser;
 let userB: TestUser;
+let admin: TestUser;
 
 async function asUser(userId: string | null, role: "authenticated" | "anon", fn: (client: any) => Promise<void>) {
   const client = await pool.connect();
@@ -28,67 +29,92 @@ async function asUser(userId: string | null, role: "authenticated" | "anon", fn:
 }
 
 beforeAll(async () => {
+  const ts = Date.now();
   const resA = await pool.query(
     `insert into users (email, name, role) values ($1, $2, 'member') returning id, email`,
-    [`rls-test-a-${Date.now()}@fittribe.test`, "User A"]
+    [`rls-test-a-${ts}@fittribe.test`, "User A"]
   );
   const resB = await pool.query(
     `insert into users (email, name, role) values ($1, $2, 'member') returning id, email`,
-    [`rls-test-b-${Date.now()}@fittribe.test`, "User B"]
+    [`rls-test-b-${ts}@fittribe.test`, "User B"]
+  );
+  const resAdmin = await pool.query(
+    `insert into users (email, name, role) values ($1, $2, 'admin') returning id, email`,
+    [`rls-test-admin-${ts}@fittribe.test`, "Admin User"]
   );
   userA = resA.rows[0];
   userB = resB.rows[0];
+  admin = resAdmin.rows[0];
 
   // Seed one calendar event per user, inserted as the superuser (bypasses RLS)
   await pool.query(
-    `insert into calendar_events (user_id, title, event_date) values ($1, 'A''s class', '2026-08-01')`,
+    `insert into calendar_events (user_id, title, event_date_start_time) values ($1, 'A''s class', '2026-08-01T09:00:00Z')`,
     [userA.id]
   );
   await pool.query(
-    `insert into calendar_events (user_id, title, event_date) values ($1, 'B''s class', '2026-08-02')`,
+    `insert into calendar_events (user_id, title, event_date_start_time) values ($1, 'B''s class', '2026-08-02T09:00:00Z')`,
     [userB.id]
   );
 });
 
 afterAll(async () => {
-  await pool.query(`delete from users where id in ($1, $2)`, [userA.id, userB.id]);
+  await pool.query(`delete from users where id in ($1, $2, $3)`, [userA.id, userB.id, admin.id]);
   await pool.end();
 });
 
 describe("calendar_events RLS", () => {
-  it("lets a user see only their own events", async () => {
+  it("admin can insert an event and any member can read it back", async () => {
+    await asUser(admin.id, "authenticated", async (client) => {
+      await client.query(
+        `insert into calendar_events (user_id, title, event_date_start_time) values ($1, 'Tribe HIIT', '2026-09-01T07:00:00Z')`,
+        [admin.id]
+      );
+    });
+
     await asUser(userA.id, "authenticated", async (client) => {
-      const res = await client.query("select title from calendar_events order by event_date");
-      expect(res.rows.map((r: any) => r.title)).toEqual(["A's class"]);
+      const res = await client.query(
+        `select title from calendar_events where title = 'Tribe HIIT'`
+      );
+      expect(res.rows).toHaveLength(1);
+      expect(res.rows[0].title).toBe("Tribe HIIT");
     });
   });
 
-  it("blocks an anonymous session from seeing any events", async () => {
-    await asUser(null, "anon", async (client) => {
-      const res = await client.query("select * from calendar_events");
-      expect(res.rows).toHaveLength(0);
+  it("member can see all calendar events, including other users' events", async () => {
+    await asUser(userA.id, "authenticated", async (client) => {
+      const res = await client.query("select title from calendar_events order by event_date_start_time");
+      const titles = res.rows.map((r: any) => r.title);
+      expect(titles).toContain("A's class");
+      expect(titles).toContain("B's class");
     });
   });
 
-  it("rejects inserting an event on someone else's behalf", async () => {
+  it("member cannot insert a calendar event", async () => {
     await asUser(userA.id, "authenticated", async (client) => {
       await expect(
         client.query(
-          `insert into calendar_events (user_id, title, event_date) values ($1, 'Sneaky', '2026-08-03')`,
-          [userB.id]
+          `insert into calendar_events (user_id, title, event_date_start_time) values ($1, 'Unauthorized', '2026-09-02T07:00:00Z')`,
+          [userA.id]
         )
       ).rejects.toThrow();
     });
   });
 
-  it("lets a user insert their own event", async () => {
-    await asUser(userA.id, "authenticated", async (client) => {
-      await client.query(
-        `insert into calendar_events (user_id, title, event_date) values ($1, 'New session', '2026-08-04')`,
-        [userA.id]
-      );
-      const res = await client.query("select count(*) from calendar_events where title = 'New session'");
-      expect(Number(res.rows[0].count)).toBe(1);
+  it("unauthenticated session cannot insert a calendar event", async () => {
+    await asUser(null, "anon", async (client) => {
+      await expect(
+        client.query(
+          `insert into calendar_events (user_id, title, event_date_start_time) values ($1, 'Anon insert', '2026-09-02T07:00:00Z')`,
+          [userA.id]
+        )
+      ).rejects.toThrow();
+    });
+  });
+
+  it("unauthenticated session cannot read calendar events", async () => {
+    await asUser(null, "anon", async (client) => {
+      const res = await client.query("select * from calendar_events");
+      expect(res.rows).toHaveLength(0);
     });
   });
 });
