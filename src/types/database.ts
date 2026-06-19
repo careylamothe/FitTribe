@@ -3,7 +3,7 @@ export interface CalendarEvent {
   user_id: string;
   title: string;
   description: string | null;
-  event_date: string;
+  event_date_start_time: string   
   created_at: string;
 }
 

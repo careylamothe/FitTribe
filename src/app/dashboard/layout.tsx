@@ -5,26 +5,24 @@ import { auth, signOut } from "@/auth";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 
-  // Defense in depth: middleware already gates this route, but server
-  // components should never trust that alone.
   if (!session?.user) {
     redirect("/login");
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="flex items-center justify-between border-b border-border px-8 py-4">
+    <div className="min-h-screen bg-canvas text-ink">
+      <nav className="flex items-center justify-between border-b-2 border-ink/10 bg-canvas px-8 py-4">
         <div className="text-lg font-bold">
-          Fit<span className="text-lime">Tribe</span>
+          Fit<span className="text-punch">Tribe</span>
         </div>
-        <div className="flex items-center gap-6 text-sm text-neutral-400">
-          <Link href="/dashboard" className="hover:text-lime">
+        <div className="flex items-center gap-6 text-sm text-ink-muted">
+          <Link href="/dashboard" className="hover:text-punch">
             Dashboard
           </Link>
-          <Link href="/dashboard/calendar" className="hover:text-lime">
+          <Link href="/dashboard/calendar" className="hover:text-punch">
             Calendar
           </Link>
-          <Link href="/dashboard/chat" className="hover:text-lime">
+          <Link href="/dashboard/chat" className="hover:text-punch">
             Tribe Chat
           </Link>
           <form
@@ -33,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <button type="submit" className="rounded-lg border border-border px-3 py-1.5 hover:border-lime">
+            <button type="submit" className="rounded-lg border-2 border-ink/20 px-3 py-1.5 hover:border-punch hover:text-punch">
               Log out
             </button>
           </form>

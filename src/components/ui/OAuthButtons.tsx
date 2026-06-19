@@ -21,7 +21,7 @@ export function OAuthButtons() {
         type="button"
         onClick={() => handleSignIn("google")}
         disabled={loadingProvider !== null}
-        className="w-full rounded-lg border border-border bg-transparent py-2.5 text-sm font-medium text-white transition hover:border-lime disabled:opacity-50"
+        className="w-full rounded-lg border-2 border-ink bg-zest py-2.5 text-sm font-medium text-ink transition hover:bg-zest-dark disabled:opacity-50"
       >
         {loadingProvider === "google" ? "Redirecting…" : "Continue with Google"}
       </button>
@@ -29,7 +29,7 @@ export function OAuthButtons() {
         type="button"
         onClick={() => handleSignIn("github")}
         disabled={loadingProvider !== null}
-        className="w-full rounded-lg border border-border bg-transparent py-2.5 text-sm font-medium text-white transition hover:border-lime disabled:opacity-50"
+        className="w-full rounded-lg border-2 border-ink bg-zest py-2.5 text-sm font-medium text-ink transition hover:bg-zest-dark disabled:opacity-50"
       >
         {loadingProvider === "github" ? "Redirecting…" : "Continue with GitHub"}
       </button>

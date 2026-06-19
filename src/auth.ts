@@ -2,17 +2,12 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
-import { SupabaseAdapter } from "@auth/supabase-adapter";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { authConfig } from "@/auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
-  adapter: SupabaseAdapter({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  }),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -59,4 +54,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ user, account }) {
+      // Upsert OAuth users into public.users so they share one table with role support
+      if (account?.provider === "google" || account?.provider === "github") {
+        await supabaseAdmin.from("users").upsert(
+          {
+            email: user.email,
+            name: user.name ?? null,
+            image: user.image ?? null,
+            // role intentionally omitted — preserve any existing role on the row
+          },
+          { onConflict: "email", ignoreDuplicates: false }
+        );
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (account?.provider === "credentials" && user) {
+        // Credentials: role comes directly from authorize()
+        token.role = (user as { role?: string }).role ?? "member";
+      } else if (account?.provider && token.email) {
+        // OAuth first sign-in: fetch role from public.users
+        const { data } = await supabaseAdmin
+          .from("users")
+          .select("id, role")
+          .eq("email", token.email)
+          .maybeSingle();
+        token.sub = data?.id ?? token.sub;
+        token.role = data?.role ?? "member";
+      }
+      return token;
+    },
+  },
 });

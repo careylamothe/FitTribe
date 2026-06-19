@@ -4,12 +4,13 @@ export const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/login",
   },
+  session: { strategy: "jwt" },
   providers: [],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        session.user.role = (user as { role?: string }).role ?? "member";
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.sub!;
+        session.user.role = (token.role as string) ?? "member";
       }
       return session;
     },
