@@ -66,7 +66,7 @@ export default async function ChatPage() {
             {messages.map((message) => (
               <div key={message.id} className="py-3">
                 <div className="text-xs font-semibold text-punch">
-                  {message.sender_name} &middot; {new Date(message.created_at).toLocaleString()}
+                  {message.sender_name} &middot; {new Date(message.created_at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}
                 </div>
                 <p className="mt-1 text-sm text-ink">{message.body}</p>
               </div>

@@ -70,8 +70,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   "server-error": "Something went wrong creating your account. Please try again.",
 };
 
-export default function SignupPage({ searchParams }: { searchParams: { error?: string } }) {
-  const error = searchParams?.error;
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-sunny px-6">
