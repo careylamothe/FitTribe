@@ -134,6 +134,8 @@ src/
 supabase/
   schema.sql                   Production schema + RLS - paste into Supabase
   ci-shim.sql                   CI-only auth.uid()/auth.role() emulation
+  ci-shim-grants.sql            CI-only table grants (runs after schema.sql)
+  migrations/                   Incremental schema migrations
 tests/rls.test.ts               RLS policy tests against a real Postgres instance
 .github/workflows/ci.yml        PR gate: lint + typecheck + RLS tests
 ```
