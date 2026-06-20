@@ -29,7 +29,7 @@ export function ParticipantBadge({ count, userIsGoing = false }: Props) {
     >
       <PersonIcon />
       {count}
-      {userIsGoing && <span className="ml-0.5">· You're in</span>}
+      {userIsGoing && <span className="ml-0.5">· You&apos;re in</span>}
     </span>
   );
 }
