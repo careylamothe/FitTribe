@@ -84,8 +84,35 @@ create index if not exists idx_chat_messages_created_at on public.chat_messages(
 -- against a Postgres service container before every merge.
 
 alter table public.users enable row level security;
+alter table public.accounts enable row level security;
+alter table public.sessions enable row level security;
+alter table public.verification_tokens enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.chat_messages enable row level security;
+
+-- accounts: only the owning user can see their own OAuth account links
+-- (server-side adapter uses service role and bypasses RLS)
+create policy "Users can view own accounts"
+  on public.accounts for select
+  using (auth.uid() = "userId");
+
+create policy "Users can delete own accounts"
+  on public.accounts for delete
+  using (auth.uid() = "userId");
+
+-- sessions: only the owning user can see their own session
+create policy "Users can view own sessions"
+  on public.sessions for select
+  using (auth.uid() = "userId");
+
+create policy "Users can delete own sessions"
+  on public.sessions for delete
+  using (auth.uid() = "userId");
+
+-- verification_tokens: no direct client access needed; service role handles all reads/writes
+create policy "No direct client access to verification tokens"
+  on public.verification_tokens for select
+  using (false);
 
 create policy "Users can view own profile"
   on public.users for select
